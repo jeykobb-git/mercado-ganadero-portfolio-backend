@@ -1,0 +1,101 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16
+    container_name: ${CONTAINER_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command:
+      - "postgres"
+      - "-c"
+      - "log_destination=stderr"
+      - "-c"
+      - "logging_collector=on"
+      - "-c"
+      - "log_directory=log"
+      - "-c"
+      - "log_filename=postgresql-%Y-%m-%d_%H%M%S.log"
+      - "-c"
+      - "log_rotation_age=1d"
+      - "-c"
+      - "log_rotation_size=100MB"
+      - "-c"
+      - "log_connections=on"
+      - "-c"
+      - "log_disconnections=on"
+      - "-c"
+      - "log_duration=on"
+      - "-c"
+      - "log_statement=mod"
+      - "-c"
+      - "log_min_duration_statement=1000"
+      - "-c"
+      - "log_line_prefix=%t [%p]: user=%u,db=%d,app=%a,client=%h"
+      - "-c"
+      - "log_timezone=America/Mexico_City"
+    volumes:
+      - ${DATA_PATH}:/var/lib/postgresql/data
+    networks:
+      - livestock-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Spring Boot
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: livestock-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: true
+      
+      # Application Profile
+      SPRING_PROFILES_ACTIVE: dev
+      
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-mySecretKeyForJWTTokenGeneration2024MercadoGanadero}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      
+      # File Upload
+      FILE_UPLOAD_DIR: /app/uploads
+      MAX_FILE_SIZE: 10MB
+      
+      # Server Configuration
+      SERVER_PORT: 8080
+      
+    volumes:
+      # Hot reload para desarrollo
+      - ./backend/src:/app/src
+      - ./backend/target:/app/target
+      # Archivos subidos
+      - ./uploads:/app/uploads
+      # Logs
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - livestock-network
+    restart: unless-stopped
+
+networks:
+  livestock-network:
+    driver: bridge

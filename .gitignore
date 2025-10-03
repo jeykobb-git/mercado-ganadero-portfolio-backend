@@ -1,0 +1,50 @@
+# Environment variables
+.env
+.env.dev
+.env.prod
+.env.local
+
+# Database data
+dev-data/
+prod-data/
+
+# Uploads and logs
+uploads/
+logs/
+
+# Maven
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+*.swp
+*.swo
+*~
+
+# Spring Boot
+backend/HELP.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# Temporary files
+*.tmp
+*.bak
+*.log
