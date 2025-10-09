@@ -49,3 +49,9 @@ hs_err_pid*
 *.tmp
 *.bak
 *.log
+
+# ========== CLAVES RSA ==========
+src/main/resources/keys/
+*.pem
+*.key
+*.pub

@@ -68,18 +68,26 @@ services:
       SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: true
       
       # Application Profile
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SERVER_PORT: ${SERVER_PORT}
       
       # JWT Configuration
-      JWT_SECRET: ${JWT_SECRET:-mySecretKeyForJWTTokenGeneration2024MercadoGanadero}
-      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      # Claves RSA están en src/main/resources/keys/
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      JWT_REFRESH_EXPIRATION_DAYS: ${JWT_REFRESH_EXPIRATION_DAYS}
+      JWT_MAX_ACTIVE_SESSIONS: ${JWT_MAX_ACTIVE_SESSIONS}
+      JWT_ISSUER: ${JWT_ISSUER}
+
+      # ========== CORS Configuration ==========
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+
+      # ========== File Upload Configuration ==========
+      FILE_UPLOAD_DIR: ${FILE_UPLOAD_DIR}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
+      MAX_REQUEST_SIZE: ${MAX_REQUEST_SIZE}
       
-      # File Upload
-      FILE_UPLOAD_DIR: /app/uploads
-      MAX_FILE_SIZE: 10MB
-      
-      # Server Configuration
-      SERVER_PORT: 8080
+      # ========== Logging Configuration ==========
+      LOG_FILE: ${LOG_FILE}
       
     volumes:
       # Hot reload para desarrollo

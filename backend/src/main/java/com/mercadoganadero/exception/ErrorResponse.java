@@ -22,6 +22,6 @@ public class ErrorResponse {
     private String message;
     private String path;
 
-    // Campo opcional para errores que necesitan más detalle (como los de validación)
-    private Map<String, ?> details;
+    // Para errores que necesitan más detalle (como los de validación)
+    private Object details;
 }

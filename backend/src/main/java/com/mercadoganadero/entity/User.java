@@ -1,5 +1,6 @@
 package com.mercadoganadero.entity;
 
+import com.mercadoganadero.enums.UserRole;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
@@ -9,8 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Entity
 @Table(name = "users")
@@ -76,6 +76,14 @@ public class User {
     private Map<String, Object> notificationPreferences;
 
     // TODO: generar relaciones
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private Set<UserRole> roles = new HashSet<>();
+
     @Column(name = "user_type_id", nullable = false)
     private Integer userTypeId;
 
@@ -112,10 +120,38 @@ public class User {
         if (notificationPreferences == null) {
             notificationPreferences = new HashMap<>();
         }
+
+        // Si no tiene roles, asignar USER por defecto
+        if (roles == null || roles.isEmpty()) {
+            roles = new HashSet<>();
+            roles.add(UserRole.USER);
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
+    }
+
+    // Métodos de ayuda para roles
+    public void addRole(UserRole role) {
+        if (this.roles == null) {
+            this.roles = new HashSet<>();
+        }
+        this.roles.add(role);
+    }
+
+    public void removeRole(UserRole role) {
+        if (this.roles != null) {
+            this.roles.remove(role);
+        }
+    }
+
+    public boolean hasRole(UserRole role) {
+        return this.roles != null && this.roles.contains(role);
+    }
+
+    public List<UserRole> getRolesList() {
+        return this.roles != null ? new ArrayList<>(this.roles) : new ArrayList<>();
     }
 }

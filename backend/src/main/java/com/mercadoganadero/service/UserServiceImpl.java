@@ -3,14 +3,17 @@ package com.mercadoganadero.service;
 import com.mercadoganadero.dto.UserCreateDTO;
 import com.mercadoganadero.dto.UserUpdateDTO;
 import com.mercadoganadero.entity.User;
+import com.mercadoganadero.enums.UserRole;
 import com.mercadoganadero.repository.UserRepository;
 import com.mercadoganadero.exception.ResourceNotFoundException;
 import com.mercadoganadero.exception.DuplicateEmailException;
 import com.mercadoganadero.exception.InvalidPasswordException;
 import com.mercadoganadero.exception.InvalidTokenException;
+import com.mercadoganadero.validation.PasswordValidator;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,10 +26,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordValidator passwordValidator;
 
     // ============================= OPERACIONES CRUD BÁSICAS =============================
 
@@ -46,8 +51,6 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public User getUserByEmail(String email) {
-        // Usamos findActiveByEmail si solo queremos usuarios activos,
-        // o findByEmail si necesitamos el objeto para manejo interno. Usaremos findByEmail.
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", email));
     }
@@ -63,6 +66,8 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new DuplicateEmailException(dto.getEmail());
         }
+        // 2.VALIDAR CONTRASEÑA ROBUSTA
+        passwordValidator.validatePassword(dto.getPassword());
 
         // 2. Mapeo de DTO a Entidad y Hashing de Contraseña
         // Se usa el Builder de Lombok
@@ -85,7 +90,13 @@ public class UserServiceImpl implements UserService {
                 // createdAt y updatedAt se gestionan con @PrePersist en la entidad
                 .build();
 
-        return userRepository.save(newUser);
+        // 4. Asignar rol por defecto
+        newUser.addRole(UserRole.USER);
+
+        User savedUser = userRepository.save(newUser);
+        log.info("Usuario creado: {} con roles: {}", savedUser.getEmail(), savedUser.getRoles());
+
+        return savedUser;
     }
 
     /**
@@ -125,6 +136,7 @@ public class UserServiceImpl implements UserService {
         user.setDeletedAt(OffsetDateTime.now());
         user.setIsActive(false);
         userRepository.save(user);
+        log.info("Usuario eliminado (soft delete): {}", user.getEmail());
     }
 
     // ============================= BÚSQUEDA Y LISTADOS =============================
@@ -165,9 +177,14 @@ public class UserServiceImpl implements UserService {
             throw new InvalidPasswordException("La contraseña actual proporcionada es incorrecta.");
         }
 
-        // 2. Hashear y guardar la nueva contraseña
+        // 2.VALIDAR NUEVA CONTRASEÑA
+        passwordValidator.validatePassword(newPassword);
+
+        // 3. Hashear y guardar la nueva contraseña
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        log.info("Contraseña cambiada para usuario: {}", user.getEmail());
     }
 
     /**
@@ -187,10 +204,11 @@ public class UserServiceImpl implements UserService {
             OffsetDateTime expiryDate = OffsetDateTime.now().plusHours(1);
 
             // 2. Guardar token
-            // NOTA: Se asume que User.java tiene los setters para estos campos
             user.setPasswordResetToken(token);
             user.setPasswordResetTokenExpiryDate(expiryDate);
             userRepository.save(user);
+
+            log.info("Token de reseteo generado para: {}", email);
 
             // TODO: Implementar envío de email
             // emailService.sendPasswordResetEmail(user.getEmail(), token);)
@@ -210,20 +228,26 @@ public class UserServiceImpl implements UserService {
 
         // 2. Validar expiración (Si el campo existe en la entidad User)
 
-        if (user.getPasswordResetTokenExpiryDate() != null && user.getPasswordResetTokenExpiryDate().isBefore(OffsetDateTime.now())) {
-            user.setPasswordResetToken(null);
-            user.setPasswordResetTokenExpiryDate(null);
+        if (user.getPasswordResetTokenExpiryDate() != null &&
+            user.getPasswordResetTokenExpiryDate().isBefore(OffsetDateTime.now())) {
+                user.setPasswordResetToken(null);
+                user.setPasswordResetTokenExpiryDate(null);
             userRepository.save(user);
             throw new InvalidTokenException("El token de reseteo ha expirado.");
         }
 
-        // 3. Resetear y Hashear la nueva contraseña
+        // 3.VALIDAR NUEVA CONTRASEÑA
+        passwordValidator.validatePassword(newPassword);
+
+        // 4. Resetear y Hashear la nueva contraseña
         user.setPasswordHash(passwordEncoder.encode(newPassword));
 
         // 4. Limpiar token después de uso
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiryDate(null);
         userRepository.save(user);
+
+        log.info("Contraseña reseteada para usuario: {}", user.getEmail());
     }
 
     /**
@@ -240,7 +264,10 @@ public class UserServiceImpl implements UserService {
         // 2. Marcar email como verificado y limpiar token
         user.setEmailVerified(true);
         user.setEmailVerificationToken(null);
+        user.setEmailVerifiedAt(OffsetDateTime.now());
         userRepository.save(user);
+
+        log.info("Email verificado para usuario: {}", user.getEmail());
     }
 
     // ============================= ESTADÍSTICAS Y VALIDACIONES =============================

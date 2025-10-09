@@ -6,17 +6,24 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro JWT que intercepta cada petición HTTP
+ * Extrae el token del header Authorization, lo valida y establece la autenticación
+ */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider; // Clase utilitaria para JWT
@@ -29,24 +36,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
 
         try {
+            // 1. Extraer el JWT del header Authorization
             String jwt = getJwtFromRequest(request);
 
-            if (jwt != null && tokenProvider.validateToken(jwt)) {
-                // 1. Obtener la identidad (username/email) del token
-                String email = tokenProvider.getUsernameFromJWT(jwt);
+            // 2. Validar el token y extraer información del usuario
+            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+                // Obtener la identidad (username/email) del token
+                String username = tokenProvider.getUsernameFromJWT(jwt);
 
-                // 2. Cargar los detalles del usuario
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                // 3. Cargar los detalles completos del usuario (incluidos roles)
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 3. Crear el objeto de autenticación
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
+                // 4. Crear el objeto de autenticación
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities() // Incluye los roles
+                        );
 
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
 
-                // 4. Establecer la autenticación en el contexto de Spring Security
-                // Esto es lo que "autentica" al usuario para la petición actual.
+                // 5. Establecer la autenticación en el contexto de seguridad
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                log.debug("Usuario autenticado: {} con roles: {}",
+                        username, userDetails.getAuthorities());
             }
         } catch (Exception ex) {
             // Manejar errores de token inválido/expirado
@@ -56,11 +73,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Extrae el JWT del header Authorization
+     * Formato esperado: "Authorization: Bearer <token>"
+     */
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         // Buscar el patrón "Bearer <token>"
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7); // Eliminar "Bearer " del inicio
         }
         return null;
     }

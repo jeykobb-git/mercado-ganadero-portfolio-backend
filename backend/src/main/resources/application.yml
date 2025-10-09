@@ -66,12 +66,23 @@ server:
 # Application Specific Configuration
 app:
   jwt:
-    secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
-  file:
-    upload-dir: ${FILE_UPLOAD_DIR:./uploads}
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
+    # Tiempo de expiración del ACCESS TOKEN (15 minutos = 900000ms)
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}  # 15min
+
+    # Tiempo de expiración del REFRESH TOKEN (7 días)
+    refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+
+    # Máximo de sesiones activas por usuario
+    max-active-sessions: ${JWT_MAX_ACTIVE_SESSIONS:5}
+
+    # Emisor del token (para validación)
+    issuer: ${JWT_ISSUER:mercado-ganadero}
+
+    file:
+      upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+
+    cors:
+      allowed-origins: http://localhost:3000,http://localhost:4200,http://localhost:5173
     
 # Actuator Configuration
 management:

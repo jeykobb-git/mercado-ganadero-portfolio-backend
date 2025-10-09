@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO para la respuesta de autenticación (Login)
- * Contiene el token JWT y el objeto de usuario.
+ * DTO para la respuesta de autenticación (Login y Refresh Token).
+ * Contiene los tokens, el tiempo de expiración y los datos del usuario.
  */
 @Data
 @NoArgsConstructor
@@ -15,7 +15,11 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AuthResponseDTO {
 
-    private String token;
-    private final String tokenType = "Bearer"; // Tipo de token estándar
-    private UserResponseDTO user; // Objeto de usuario (sin password, con datos relevantes)
+    private String accessToken;
+    private String refreshToken;
+    private long expiresIn;
+
+    @Builder.Default
+    private String tokenType = "Bearer";
+    private UserResponseDTO user;
 }
