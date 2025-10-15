@@ -1,7 +1,7 @@
 Mercado Ganadero - API Backend
 API backend robusta y segura para un marketplace de ganado, construida con las mejores prácticas de desarrollo de software y un enfoque en la seguridad y escalabilidad.
 
-✨ Características Principales
+Características Principales
 Este proyecto no es solo un CRUD básico, implementa funcionalidades complejas y seguras para una aplicación del mundo real:
 
 Seguridad Avanzada con Spring Security:
@@ -48,7 +48,7 @@ Utilidades	Lombok, Jackson (JSON), Slf4j (Logging)
 Documentación API	SpringDoc (OpenAPI / Swagger)
 
 Exportar a Hojas de cálculo
-🚀 Cómo Empezar
+Cómo Empezar
 Requisitos Previos
 Docker Desktop instalado y corriendo.
 
@@ -79,14 +79,14 @@ API Health Check: Visita http://localhost:8080/actuator/health para verificar qu
 
 Base de Datos: Se puede acceder en localhost:5432 con las credenciales de .env.dev.
 
-📚 Documentación de la API
+Documentación de la API
 Una vez que la aplicación está corriendo, la documentación interactiva de la API (Swagger UI) está disponible en:
 
-➡️ http://localhost:8080/swagger-ui.html
+http://localhost:8080/swagger-ui.html
 
 Desde allí puedes explorar todos los endpoints, ver los modelos de datos y probar la API directamente.
 
-⚙️ Comandos Útiles de Docker
+Comandos Útiles de Docker
 Bash
 
 # Detener y eliminar los contenedores
@@ -103,5 +103,6 @@ docker-compose restart backend
 
 # Conectarse a la base de datos PostgreSQL dentro del contenedor
 docker exec -it postgres_db_dev psql -U devuser -d mercado_ganadero_db
-📄 Licencia
+
+Licencia
 Este proyecto es de código abierto bajo la Licencia MIT. Eres libre de usarlo para fines educativos y para tu propio portafolio.
